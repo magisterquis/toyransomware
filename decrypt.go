@@ -55,7 +55,6 @@ func (d Decrypter) Decrypt(path string, info os.FileInfo, err error) error {
 		)
 		return nil
 	}
-	log.Printf("Read %q (%d)", d.Buffer[:nr], nr) /* DEBUG */
 
 	/* If we're not at the end of the file we'll have to read the nonce and
 	overhead from the end of the file. */
@@ -70,7 +69,6 @@ func (d Decrypter) Decrypt(path string, info os.FileInfo, err error) error {
 	}
 	var boxLen int
 	if loc > int64(nr) { /* We didn't get to the end of the file */
-		log.Printf("Not at end of file") /* DEBUG */
 		loc, err = f.Seek(
 			int64(-(secretbox.Overhead + len(d.Nonce))),
 			os.SEEK_CUR,
@@ -98,14 +96,10 @@ func (d Decrypter) Decrypt(path string, info os.FileInfo, err error) error {
 		boxLen = d.ChunkLen + secretbox.Overhead
 	} else { /* File was small */
 		boxLen = nr - len(d.Nonce)
-		log.Printf("Box length: %d", boxLen) /* DEBUG */
 	}
 
 	/* Copy nonce to its own array */
 	copy(d.Nonce[:], d.Buffer[boxLen:boxLen+len(d.Nonce)])
-	log.Printf("Nonce: %q", d.Nonce)                                       /* DEBUG */
-	log.Printf("Key: %q", d.Key)                                           /* DEBUG */
-	log.Printf("Data: %q (%d)", d.Buffer[:boxLen], len(d.Buffer[:boxLen])) /* DEBUG */
 
 	/* Decrypt the data */
 	var ok bool

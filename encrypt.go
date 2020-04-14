@@ -125,12 +125,9 @@ func (e Encrypter) Encrypt(path string, info os.FileInfo, err error) error {
 		)
 		return nil
 	}
-	log.Printf("Nonce: %q", e.Nonce) /* DEBUG */
-	log.Printf("Key: %q", e.Key)     /* DEBUG */
 
 	/* Encrypt it */
 	e.Out = secretbox.Seal(e.Out[:0], e.Message[:nr], &e.Nonce, &e.Key)
-	log.Printf("Data: %q (%d)", e.Out, len(e.Out)) /* DEBUG */
 
 	/* Replace the chunk of the file we read and append the rest and
 	nonce. */
