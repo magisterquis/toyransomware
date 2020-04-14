@@ -3,7 +3,7 @@ Toy Ransomware
 This is not-very-good ransomware meant to be used as a PoC or test of defensive
 capabilities (until someone signatures it).
 
-To use it, just run it.  It will encrypt the first chenk of all files in
+To use it, just run it.  It will encrypt the first chunk of all files in
 `$HOME` by default.
 
 Please run (in a throwaway VM) with `-h` for a complete list of options.
