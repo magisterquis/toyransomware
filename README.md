@@ -60,6 +60,13 @@ to send you.
 Both together, separated by a dot (`3nfpvvv7qwlll.3w4alyv2o2x6c`) are what is
 needed to decrypt files (with `-decrypt`).
 
+The default domain used for the query can be set at compile-time by adding
+something like the following to the `go build` command:
+
+```sh
+-ldflags '-X main.domain=example.net'
+```
+
 Backups
 -------
 Encrypted files will first be backed up to a file with the same name as the

