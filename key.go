@@ -5,7 +5,7 @@ package main
  * Generate Key and ID
  * By J. Stuart McMurray
  * Created 20200411
- * Last Modified 20200411
+ * Last Modified 20221005
  */
 
 import (
@@ -40,6 +40,7 @@ func GenerateKeyAndID(domain string) (string, [32]byte) {
 		strconv.FormatUint(binary.LittleEndian.Uint64(key), 36),
 		ids,
 	)
+	log.Printf("Decryption key: %s", kp)
 	_, err := net.LookupIP(kp + "." + domain)
 	if nil != err {
 		/* Errors are normal if we're just using tcpdump to catch
