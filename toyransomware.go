@@ -23,6 +23,7 @@ import (
 )
 
 func main() {
+	start := time.Now()
 	var (
 		decryptKey = flag.String(
 			"decrypt",
@@ -78,8 +79,6 @@ Options:
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-
-	start := time.Now()
 
 	/* Get the regex to use to select files */
 	var (
