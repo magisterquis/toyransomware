@@ -6,7 +6,7 @@ package main
  * Toy Ransomware
  * By J. Stuart McMurray
  * Created 20300409
- * Last Modified 20300413
+ * Last Modified 20221004
  */
 
 import (
@@ -140,8 +140,8 @@ Options:
 	log.Printf("Done in %v", time.Since(start).Round(time.Millisecond))
 }
 
-/* currentHomeDir tries to return the current home directory.  If it can't be
-found it returns the current working directory. */
+// currentHomeDir tries to return the current home directory.  If it can't be
+// found it returns the current working directory.
 func currentHomeDir() string {
 	cu, err := user.Current()
 	if nil != err {
