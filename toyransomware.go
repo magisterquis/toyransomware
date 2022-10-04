@@ -17,6 +17,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/nacl/secretbox"
@@ -106,7 +107,9 @@ Options:
 	var wf filepath.WalkFunc
 	if "" != *decryptKey {
 		wf = Decrypter{
-			Key:      KeyFromString(*decryptKey),
+			Key: KeyFromString(
+				strings.Trim(*decryptKey, " ."),
+			),
 			ChunkLen: int(*chunkLen),
 			Buffer: make(
 				[]byte,
