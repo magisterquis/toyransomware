@@ -101,7 +101,7 @@ func (e Encrypter) Encrypt(path string, info os.FileInfo, err error) error {
 	}
 	if _, err := f.Seek(0, os.SEEK_SET); nil != err {
 		log.Printf(
-			"[%s] Seeking to beginning for chunk read: %v",
+			"[%s] Error seeking to beginning for chunk read: %v",
 			f.Name(),
 			err,
 		)
