@@ -110,7 +110,6 @@ Options:
 			Key: KeyFromString(
 				strings.Trim(*decryptKey, " ."),
 			),
-			ChunkLen: int(*chunkLen),
 			Buffer: make(
 				[]byte,
 				*chunkLen+24+secretbox.Overhead,

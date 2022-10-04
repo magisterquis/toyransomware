@@ -5,7 +5,7 @@ package main
  * Decrypt encrypted file
  * By J. Stuart McMurray
  * Created 20200411
- * Last Modified 20221004
+ * Last Modified 20221005
  */
 
 import (
@@ -19,13 +19,16 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
+// minFileSize is the smallest encrypted file.  It's a one-byte nulled payload,
+// the encrypted payload, encryption overhead, nonce, and chunk size.
+const minFileSize = 1 + 1 + secretbox.Overhead + 24 + 8 // 50, in practice
+
 // Decrypter decrypts files encrypted with an Encrypter
 type Decrypter struct {
-	Key      [32]byte /* Decryption key */
-	ChunkLen int      /* Size of encrypted chunk */
-	Buffer   []byte
-	Nonce    [24]byte
-	Out      []byte /* Open's output */
+	Key    [32]byte /* Decryption key */
+	Buffer []byte
+	Nonce  [24]byte
+	Out    []byte /* Open's output */
 }
 
 // Decrypt backs up the file named path and tries to decrypt it
@@ -37,6 +40,11 @@ func (d Decrypter) Decrypt(path string, info os.FileInfo, err error) error {
 	}
 	if !info.Mode().IsRegular() {
 		return nil
+	}
+
+	/* If the file's too small, no point in trying. */
+	if minFileSize > info.Size() {
+		log.Printf("[%s] Too small to be encrypted", path)
 	}
 
 	/* Open the file to decrypt. */
