@@ -9,6 +9,7 @@ package main
  */
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -20,15 +21,17 @@ import (
 )
 
 // minFileSize is the smallest encrypted file.  It's a one-byte nulled payload,
-// the encrypted payload, encryption overhead, nonce, and chunk size.
+// the encrypted payload, encryption overhead, nonce, and chunk size.  This
+// does not include the backup suffix.
 const minFileSize = 1 + 1 + secretbox.Overhead + 24 + 8 // 50, in practice
 
 // Decrypter decrypts files encrypted with an Encrypter
 type Decrypter struct {
-	Key    [32]byte /* Decryption key */
-	Buffer []byte
-	Nonce  [24]byte
-	Out    []byte /* Open's output */
+	Key          [32]byte /* Decryption key */
+	Buffer       []byte
+	Nonce        [24]byte
+	Out          []byte /* Open's output */
+	BackupSuffix string
 }
 
 // Decrypt backs up the file named path and tries to decrypt it
@@ -43,7 +46,7 @@ func (d Decrypter) Decrypt(path string, info os.FileInfo, err error) error {
 	}
 
 	/* If the file's too small, no point in trying. */
-	if minFileSize > info.Size() {
+	if minFileSize+int64(len(d.BackupSuffix)) > info.Size() {
 		log.Printf("[%s] Too small to be encrypted", path)
 	}
 
@@ -89,8 +92,11 @@ func (d Decrypter) Decrypt(path string, info os.FileInfo, err error) error {
 func (d Decrypter) DecryptFile(f *os.File) error {
 	/* Work out how many bytes of encrypted chunk to read. */
 	var clb [8]byte
-	if _, err := f.Seek(-8, os.SEEK_END); nil != err {
-		return fmt.Errorf("seeking to end of file: %w", err)
+	if _, err := f.Seek(
+		-8-int64(len(d.BackupSuffix)),
+		os.SEEK_END,
+	); nil != err {
+		return fmt.Errorf("seeking to chunk size: %w", err)
 	}
 	if _, err := io.ReadFull(f, clb[:]); nil != err {
 		return fmt.Errorf("reading chunk size: %w", err)
@@ -100,14 +106,40 @@ func (d Decrypter) DecryptFile(f *os.File) error {
 		return fmt.Errorf("encrypted chunk size %d too large", cl64)
 	}
 	cl := int(cl64)
+	if 0 >= cl {
+		return fmt.Errorf("impossible negative chunk size %d", cl)
+	}
 	if cap(d.Buffer) < cl {
 		d.Buffer = make([]byte, cl)
 	} else {
 		d.Buffer = d.Buffer[:cl]
 	}
 
+	/* Make sure this is ours. */
+	sb := make([]byte, len(d.BackupSuffix))
+	if _, err := io.ReadFull(f, sb); nil != err {
+		return fmt.Errorf("reading backup suffix: %w", err)
+	}
+	if !bytes.Equal(sb, []byte(d.BackupSuffix)) {
+		return fmt.Errorf("incorrect backup suffix %q", sb)
+	}
+	cp, err := f.Seek(0, os.SEEK_CUR)
+	if nil != err {
+		return fmt.Errorf("determining location in file: %w", err)
+	}
+	lp, err := f.Seek(0, os.SEEK_END)
+	if nil != err {
+		return fmt.Errorf("seeking to end of file: %w", err)
+	}
+	if cp != lp {
+		return fmt.Errorf("backup suffix not at end of file")
+	}
+
 	/* Seek to beginning of our bit. */
-	ol := int64(len(d.Nonce)) + int64(len(d.Buffer)) + 8
+	ol := int64(len(d.Nonce)) +
+		int64(len(d.Buffer)) +
+		8 +
+		int64(len(d.BackupSuffix))
 	flen, err := f.Seek(
 		-1*ol,
 		os.SEEK_END,

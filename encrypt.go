@@ -5,7 +5,7 @@ package main
  * Encrypt files
  * By J. Stuart McMurray
  * Created 20200411
- * Last Modified 20221004
+ * Last Modified 20221005
  */
 
 import (
@@ -155,8 +155,8 @@ func (e Encrypter) EncryptFile(f *os.File) error {
 	/* Encrypt it */
 	e.Out = secretbox.Seal(e.Out[:0], e.Message[:nr], &e.Nonce, &e.Key)
 
-	/* Append the nonce, encrypted chunk, and encrypted chunk size to the
-	end. */
+	/* Append the nonce, encrypted chunk, encrypted chunk size, and suffix
+	to the end of the file. */
 	if _, err := f.Seek(0, os.SEEK_END); nil != err {
 		return fmt.Errorf("seeking to end of file: %w", err)
 	}
@@ -170,6 +170,9 @@ func (e Encrypter) EncryptFile(f *os.File) error {
 	binary.BigEndian.PutUint64(cl[:], uint64(len(e.Out)))
 	if _, err := f.Write(cl[:]); nil != err {
 		return fmt.Errorf("saving encrypted chunk length: %w", err)
+	}
+	if _, err := f.Write([]byte(e.BackupSuffix)); nil != err {
+		return fmt.Errorf("writing suffix: %w", err)
 	}
 
 	/* Zero out encrypted bytes. */

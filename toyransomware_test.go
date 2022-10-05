@@ -106,9 +106,9 @@ func TestEncryptDecrypt(t *testing.T) {
 		}
 		return b
 	}
-	e := Encrypter{Message: make([]byte, chunkLen)}
+	e := Encrypter{Message: make([]byte, chunkLen), BackupSuffix: "etrbak"}
 	copy(e.Key[:], randBytes(len(e.Key)))
-	d := Decrypter{Key: e.Key}
+	d := Decrypter{Key: e.Key, BackupSuffix: "etrbak"}
 	for _, c := range []struct {
 		n string
 		b []byte
@@ -126,7 +126,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		{n: "2048 random bytes", b: randBytes(2048)},
 	} {
 		if err := testEncryptDecryptFile(e, d, c.b); nil != err {
-			t.Fatalf("TestEncryptDecrypt: %s: %s", c.n, err)
+			t.Errorf("TestEncryptDecrypt: %s: %s", c.n, err)
 		}
 	}
 }

