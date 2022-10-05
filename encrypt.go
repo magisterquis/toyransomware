@@ -34,6 +34,7 @@ type Encrypter struct {
 	Out            []byte         /* Seal output */
 	Message        []byte         /* Chunk of file to encrypt */
 	Nonce          [24]byte       /* Encryption nonce */
+	NoBackups      bool           /* Disable unencrypted backups */
 }
 
 // Encrypt encrypts the file named path if it's a regular file or writes a
@@ -78,34 +79,37 @@ func (e Encrypter) Encrypt(path string, info os.FileInfo, err error) error {
 	}
 
 	/* Back it up */
-	bn := path + "." + e.BackupSuffix
-	b, err := os.Create(bn)
-	if nil != err {
-		log.Printf(
-			"[%s] Unable to create backup file %s: %s",
-			f.Name(),
-			bn,
-			err,
-		)
-		return nil
-	}
-	defer b.Close()
-	if _, err := io.Copy(b, f); nil != err {
-		log.Printf(
-			"[%s] Error backing up to %s: %v",
-			f.Name(),
-			b.Name(),
-			err,
-		)
-		return nil
-	}
-	if _, err := f.Seek(0, os.SEEK_SET); nil != err {
-		log.Printf(
-			"[%s] Error seeking to beginning for chunk read: %v",
-			f.Name(),
-			err,
-		)
-		return nil
+	if !e.NoBackups {
+		bn := path + "." + e.BackupSuffix
+		b, err := os.Create(bn)
+		if nil != err {
+			log.Printf(
+				"[%s] Unable to create backup file %s: %s",
+				f.Name(),
+				bn,
+				err,
+			)
+			return nil
+		}
+		defer b.Close()
+		if _, err := io.Copy(b, f); nil != err {
+			log.Printf(
+				"[%s] Error backing up to %s: %v",
+				f.Name(),
+				b.Name(),
+				err,
+			)
+			return nil
+		}
+		if _, err := f.Seek(0, os.SEEK_SET); nil != err {
+			log.Printf(
+				"[%s] Error seeking to beginning for chunk "+
+					"read: %v",
+				f.Name(),
+				err,
+			)
+			return nil
+		}
 	}
 
 	/* Encrypt it. */

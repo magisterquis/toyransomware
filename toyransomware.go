@@ -61,6 +61,11 @@ func main() {
 			"Root of `directory` tree or single file to encrypt "+
 				"or decrypt",
 		)
+		noBackups = flag.Bool(
+			"no-backups",
+			false,
+			"Disable unencrypted backups",
+		)
 	)
 	flag.StringVar(
 		&domain,
