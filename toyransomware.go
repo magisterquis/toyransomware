@@ -131,6 +131,7 @@ Options:
 			Out:            []byte{},
 			Message:        make([]byte, int(*chunkLen)),
 			FileRE:         re,
+			NoBackups:      *noBackups,
 		}
 		/* Come up with the key and ID */
 		if ID, e.Key = GenerateKeyAndID(domain); nil != err {
