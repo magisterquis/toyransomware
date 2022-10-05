@@ -109,11 +109,6 @@ func (d Decrypter) DecryptFile(f *os.File) error {
 	if 0 >= cl {
 		return fmt.Errorf("impossible negative chunk size %d", cl)
 	}
-	if cap(d.Buffer) < cl {
-		d.Buffer = make([]byte, cl)
-	} else {
-		d.Buffer = d.Buffer[:cl]
-	}
 
 	/* Make sure this is ours. */
 	sb := make([]byte, len(d.BackupSuffix))
@@ -136,6 +131,11 @@ func (d Decrypter) DecryptFile(f *os.File) error {
 	}
 
 	/* Seek to beginning of our bit. */
+	if cap(d.Buffer) < cl {
+		d.Buffer = make([]byte, cl)
+	} else {
+		d.Buffer = d.Buffer[:cl]
+	}
 	ol := int64(len(d.Nonce)) +
 		int64(len(d.Buffer)) +
 		8 +
