@@ -74,6 +74,9 @@ file to be encrypted with a suffix added, by default `.etrbak` (controllable
 with `-encryption-suffix`).  These are there should you find yourself having
 typo'd something like `./toymalware - h`.
 
+This suffix is also used to tag files as being encrypted.  It is necessary to
+pass the same suffix when decrypting files as well.
+
 Ransom Note
 ----------
 A cheesy ransom note is left in every directory touched during encryption.  If

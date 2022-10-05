@@ -116,7 +116,11 @@ func (d Decrypter) DecryptFile(f *os.File) error {
 		return fmt.Errorf("reading backup suffix: %w", err)
 	}
 	if !bytes.Equal(sb, []byte(d.BackupSuffix)) {
-		return fmt.Errorf("incorrect backup suffix %q", sb)
+		return fmt.Errorf(
+			"incorrect backup suffix %q (do you need "+
+				"-encryption-suffix?)",
+			sb,
+		)
 	}
 	cp, err := f.Seek(0, os.SEEK_CUR)
 	if nil != err {
